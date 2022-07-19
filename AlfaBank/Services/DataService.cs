@@ -9,6 +9,8 @@ using System.Data;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Text;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace AlfaBank.Services
 {
@@ -33,11 +35,49 @@ namespace AlfaBank.Services
         public async Task ReadRegularExpressions()
         {
             string content;
-            using (StreamReader reader = new StreamReader(path, Encoding.UTF8))
+            StreamReader reader = new StreamReader(path, Encoding.UTF8);
+            content = reader.ReadToEnd();
+            content = content.Replace(Environment.NewLine, "");
+            content = content.Replace("\t", "");
+            Regex regex = new Regex(@"<item>[\s\S\w\W\d\D]*?</item>");
+            MatchCollection matches = regex.Matches(content);
+            List<Channel> result = new List<Channel>();
+            if (matches.Count > 0)
             {
-                content = reader.ReadToEnd();
+                foreach (Match match in matches)
+                {
+                    var channel = new Channel();
+
+                    Regex regexTitle = new Regex(@"<title>[\s\S\w\W\d\D]*?</title>");
+                    MatchCollection matcheTitle = regexTitle.Matches(match.Value);
+                    channel.Titel = matcheTitle[0].Value.Replace("<title>", "").Replace("</title>", "");
+                    
+                    Regex regexLink = new Regex(@"<link>[\s\S\w\W\d\D]*?</link>");
+                    MatchCollection matcheLink = regexLink.Matches(match.Value);
+                    channel.Link = matcheLink[0].Value.Replace("<link>", "").Replace("</link>", "");
+
+                    Regex regexDescription = new Regex(@"<description>[\s\S\w\W\d\D]*?</description>");
+                    MatchCollection matcheDescription = regexDescription.Matches(match.Value);
+                    channel.Description = matcheDescription[0].Value.Replace("<description>", "").Replace("</description>", "");
+
+                    Regex regexCategory = new Regex(@"<category>[\s\S\w\W\d\D]*?</category>");
+                    MatchCollection matcheCategory = regexCategory.Matches(match.Value);
+                    channel.Category = matcheCategory[0].Value.Replace("<category>", "").Replace("</category>", "");
+
+                    Regex regexPubDate = new Regex(@"<pubDate>[\s\S\w\W\d\D]*?</pubDate>");
+                    MatchCollection matchePubDate = regexPubDate.Matches(match.Value);
+                    channel.PubDate = matchePubDate[0].Value.Replace("<pubDate>", "").Replace("</pubDate>", "");
+
+                    result.Add(channel);
+                }
             }
-            
+            else
+            {
+                MessageBox.Show("Совпадений не найдено");
+            }
+
+            list = result.ToArray();
+            reader.Close();
         }
 
         public async Task WriteTxt()
